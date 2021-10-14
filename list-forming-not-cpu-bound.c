@@ -31,16 +31,16 @@ pthread_mutex_t mutex_lock;
 
 struct list *List;
 
-void bind_thread_to_cpu(int cpuid) {
-  cpu_set_t mask;
-  CPU_ZERO(&mask);
+/*void bind_thread_to_cpu(int cpuid) {*/
+/*cpu_set_t mask;*/
+/*CPU_ZERO(&mask);*/
 
-  CPU_SET(cpuid, &mask);
-  if (sched_setaffinity(0, sizeof(cpu_set_t), &mask)) {
-    fprintf(stderr, "sched_setaffinity");
-    exit(EXIT_FAILURE);
-  }
-}
+/*CPU_SET(cpuid, &mask);*/
+/*if (sched_setaffinity(0, sizeof(cpu_set_t), &mask)) {*/
+/*fprintf(stderr, "sched_setaffinity");*/
+/*exit(EXIT_FAILURE);*/
+/*}*/
+/*}*/
 
 struct Node *generate_data_node() {
   struct Node *ptr;
@@ -55,8 +55,6 @@ struct Node *generate_data_node() {
 }
 
 void *producer_thread(void *arg) {
-  bind_thread_to_cpu(*((int *)arg)); // bind this thread to a CPU
-
   struct list *localList;
 
   localList = (struct list *)malloc(sizeof(struct list));
@@ -98,10 +96,12 @@ void *producer_thread(void *arg) {
     List->tail = localList->tail;
   }
   pthread_mutex_unlock(&mutex_lock);
+
+  return NULL;
 }
 
 int main(int argc, char *argv[]) {
-  int i, num_threads;
+  int i, num_threads, err;
 
   int NUM_PROCS; // number of CPU
   int *cpu_array = NULL;
@@ -117,18 +117,19 @@ int main(int argc, char *argv[]) {
   num_threads = atoi(argv[1]); // read num_threads from user
   K = atoi(argv[2]);
 
-  pthread_t producer[num_threads];
-  NUM_PROCS = sysconf(_SC_NPROCESSORS_CONF); // get number of CPU
-  if (NUM_PROCS > 0) {
-    cpu_array = (int *)malloc(NUM_PROCS * sizeof(int));
-    if (cpu_array == NULL) {
-      printf("Allocation failed!\n");
-      exit(0);
-    } else {
-      for (i = 0; i < NUM_PROCS; i++)
-        cpu_array[i] = i;
-    }
-  }
+  pthread_t threadId;
+
+  /*NUM_PROCS = sysconf(_SC_NPROCESSORS_CONF); // get number of CPU*/
+  /*if (NUM_PROCS > 0) {*/
+  /*cpu_array = (int *)malloc(NUM_PROCS * sizeof(int));*/
+  /*if (cpu_array == NULL) {*/
+  /*printf("Allocation failed!\n");*/
+  /*exit(0);*/
+  /*} else {*/
+  /*for (i = 0; i < NUM_PROCS; i++)*/
+  /*cpu_array[i] = i;*/
+  /*}*/
+  /*}*/
 
   pthread_mutex_init(&mutex_lock, NULL);
 
@@ -140,15 +141,19 @@ int main(int argc, char *argv[]) {
   List->header = List->tail = NULL;
 
   gettimeofday(&starttime, NULL); // get program start time
-  for (i = 0; i < num_threads; i++) {
-    pthread_create(&(producer[i]), NULL, (void *)producer_thread,
-                   &cpu_array[i % NUM_PROCS]);
-  }
 
   for (i = 0; i < num_threads; i++) {
-    if (producer[i] != 0) {
-      pthread_join(producer[i], NULL);
+    err = pthread_create(&threadId, NULL, (void *)producer_thread, NULL);
+    if (err) {
+      printf("Something went wrong creating the thread");
+      return 1;
     }
+  }
+
+  err = pthread_join(threadId, NULL);
+  if (err) {
+    printf("Something went wrong joining the threads");
+    return 1;
   }
 
   gettimeofday(&endtime, NULL); // get the finish time

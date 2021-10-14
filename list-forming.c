@@ -15,7 +15,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#define K 200 // genreate a data node for K times in each thread
+int K = 200;
 
 struct Node {
   int data;
@@ -94,12 +94,14 @@ int main(int argc, char *argv[]) {
   struct Node *tmp, *next;
   struct timeval starttime, endtime;
 
-  if (argc == 1) {
-    printf("ERROR: please provide an input arg (the number of threads)\n");
+  if (argc < 3) {
+    printf("USAGE: ./a.out <num_threads> <k>\n");
     exit(1);
   }
 
   num_threads = atoi(argv[1]); // read num_threads from user
+  K = atoi(argv[2]);
+
   pthread_t producer[num_threads];
   NUM_PROCS = sysconf(_SC_NPROCESSORS_CONF); // get number of CPU
   if (NUM_PROCS > 0) {
