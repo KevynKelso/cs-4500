@@ -46,7 +46,7 @@ struct Node *generate_data_node() {
   struct Node *ptr;
   ptr = (struct Node *)malloc(sizeof(struct Node));
 
-  if (NULL != ptr) {
+  if (ptr) {
     ptr->next = NULL;
   } else {
     printf("Node allocation failed!\n");
@@ -64,22 +64,18 @@ void *producer_thread(void *arg) {
   while (counter < K) {
     ptr = generate_data_node();
 
-    if (NULL != ptr) {
-      while (1) {
-        /* access the critical region and add a node to the global list */
-        if (!pthread_mutex_trylock(&mutex_lock)) {
-          ptr->data = 1; // generate data
-          /* attache the generated node to the global list */
-          if (List->header == NULL) {
-            List->header = List->tail = ptr;
-          } else {
-            List->tail->next = ptr;
-            List->tail = ptr;
-          }
-          pthread_mutex_unlock(&mutex_lock);
-          break;
-        }
+    if (ptr) {
+      /* access the critical region and add a node to the global list */
+      pthread_mutex_lock(&mutex_lock);
+      ptr->data = 1; // generate data
+      /* attache the generated node to the global list */
+      if (List->header == NULL) {
+        List->header = List->tail = ptr;
+      } else {
+        List->tail->next = ptr;
+        List->tail = ptr;
       }
+      pthread_mutex_unlock(&mutex_lock);
     }
     ++counter;
   }
